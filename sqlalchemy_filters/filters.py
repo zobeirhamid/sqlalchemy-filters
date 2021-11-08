@@ -16,6 +16,7 @@ from itertools import chain
 
 from six import string_types
 from sqlalchemy import and_, or_, not_, func
+import sqlalchemy
 
 from .exceptions import BadFilterFormat
 from .models import Field, auto_join, get_model_from_spec, get_default_model
@@ -72,6 +73,29 @@ class Operator(object):
         self.arity = len(signature(self.function).parameters)
 
 
+class Cast(object):
+
+    CASTS = {
+        'generic': lambda f: f,
+        'string': lambda f: sqlalchemy.sql.expression.cast(
+            f, sqlalchemy.String),
+        'integer': lambda f: sqlalchemy.sql.expression.cast(
+            f, sqlalchemy.Integer),
+        'boolean': lambda f: sqlalchemy.sql.expression.cast(
+            f, sqlalchemy.Boolean)
+    }
+
+    def __init__(self, cast=None):
+        if not cast:
+            cast = 'generic'
+
+        if cast not in self.CASTS:
+            raise BadFilterFormat('Cast `{}` not valid.'.format(cast))
+
+        self.cast = cast
+        self.function = self.CASTS[cast]
+
+
 class Filter(object):
 
     def __init__(self, filter_spec):
@@ -87,6 +111,7 @@ class Filter(object):
             )
 
         self.operator = Operator(filter_spec.get('op'))
+        self.cast = Cast(filter_spec.get('cast'))
         self.value = filter_spec.get('value')
         value_present = True if 'value' in filter_spec else False
         if not value_present and self.operator.arity == 2:
@@ -100,6 +125,7 @@ class Filter(object):
     def format_for_sqlalchemy(self, query, default_model):
         filter_spec = self.filter_spec
         operator = self.operator
+        cast = self.cast
         value = self.value
 
         model = get_model_from_spec(filter_spec, query, default_model)
@@ -109,7 +135,7 @@ class Filter(object):
 
         field_name = self.filter_spec['field']
         field = Field(model, field_name)
-        sqlalchemy_field = field.get_sqlalchemy_field()
+        sqlalchemy_field = cast.function((field.get_sqlalchemy_field()))
 
         if arity == 1:
             return function(sqlalchemy_field)

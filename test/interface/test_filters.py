@@ -1316,3 +1316,23 @@ class TestHybridAttributes:
         assert set(map(type, quxs)) == {Qux}
         assert {qux.id for qux in quxs} == {4}
         assert {qux.three_times_count() for qux in quxs} == {45}
+
+
+class TestCast:
+
+    @pytest.mark.usefixtures('multiple_foos_inserted')
+    def test_string_cast(self, session):
+        query = session.query(Foo)
+        filters = [
+            {
+                'field': 'bar_id',
+                'op': 'ilike',
+                'value': '1',
+                'cast': 'string'
+            }
+        ]
+
+        filtered_query = apply_filters(query, filters)
+        result = filtered_query.all()
+
+        assert len(result) == 1
