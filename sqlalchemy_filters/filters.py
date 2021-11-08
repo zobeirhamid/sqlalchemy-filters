@@ -82,7 +82,8 @@ class Cast(object):
         'integer': lambda f: sqlalchemy.sql.expression.cast(
             f, sqlalchemy.Integer),
         'boolean': lambda f: sqlalchemy.sql.expression.cast(
-            f, sqlalchemy.Boolean)
+            f, sqlalchemy.Boolean),
+        'date': lambda f: func.date(f)
     }
 
     def __init__(self, cast=None):

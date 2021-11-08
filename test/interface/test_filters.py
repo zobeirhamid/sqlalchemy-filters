@@ -1336,3 +1336,56 @@ class TestCast:
         result = filtered_query.all()
 
         assert len(result) == 1
+
+    @pytest.mark.usefixtures('multiple_quxs_inserted')
+    def test_date_cast(self, session):
+        query = session.query(Qux)
+        filters = [
+            {
+                'field': 'execution_time',
+                'op': '>=',
+                'value': '2016-07-12',
+                'cast': 'date'
+            },
+            {
+                'field': 'execution_time',
+                'op': '<=',
+                'value': '2016-07-13',
+                'cast': 'date'
+            }
+        ]
+
+        filtered_query = apply_filters(query, filters)
+        result = filtered_query.all()
+
+        assert len(result) == 2
+
+        query = session.query(Qux)
+        filters = [
+            {
+                'field': 'execution_time',
+                'op': '==',
+                'value': '2016-07-12',
+                'cast': 'date'
+            },
+        ]
+
+        filtered_query = apply_filters(query, filters)
+        result = filtered_query.all()
+
+        assert len(result) == 1
+
+        query = session.query(Qux)
+        filters = [
+            {
+                'field': 'execution_time',
+                'op': '>',
+                'value': '2016-07-12',
+                'cast': 'date'
+            },
+        ]
+
+        filtered_query = apply_filters(query, filters)
+        result = filtered_query.all()
+
+        assert len(result) == 2
